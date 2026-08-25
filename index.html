@@ -19,6 +19,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-firestore.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-storage.min.js"></script>
 
+  <!-- EmailJS SDK (For Free Email OTP) -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script>
+    (function() {
+      // REPLACE WITH YOUR EMAILJS PUBLIC KEY WHEN READY
+      emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
+    })();
+  </script>
+
   <style>
     :root {
       --temple-sindoor: #b71c1c;
@@ -144,7 +153,7 @@
       transform: translateX(-3px);
     }
 
-    /* Pages & Cards */
+    /* Single Page Views */
     .page { display: none; }
     .page.active { display: block; animation: fadeIn 0.25s ease-in-out; }
 
@@ -322,7 +331,7 @@
       cursor: pointer;
     }
 
-    /* Log Box */
+    /* Log Badge Styles */
     .log-badge-add { background: #d1fae5; color: #065f46; }
     .log-badge-edit { background: #fef3c7; color: #92400e; }
     .log-badge-delete { background: #fee2e2; color: #991b1b; }
@@ -572,6 +581,7 @@
       </div>
 
       <div class="member-grid" id="membersGrid"></div>
+      
       <div id="membersEmpty" class="text-center py-5 text-muted" style="display: none;">
         <i class="fas fa-users fa-3x mb-2 opacity-50"></i>
         <p>No committee members added yet</p>
@@ -621,7 +631,7 @@
 
       <div class="card-header-temple">
         <i class="fas fa-history fa-2x text-warning"></i>
-        <h2>Activity & Audit Logs</h2>
+        <h2>Activity & Audit Logs (2026)</h2>
       </div>
 
       <div class="table-responsive">
@@ -629,7 +639,8 @@
           <thead class="table-light">
             <tr>
               <th>Timestamp</th>
-              <th>Admin User</th>
+              <th>Admin & Email</th>
+              <th>Device Token</th>
               <th>Action</th>
               <th>Details</th>
             </tr>
@@ -642,30 +653,53 @@
 
 </main>
 
-<!-- Login Modal -->
+<!-- OTP Login Modal with 3 Attempts Counter -->
 <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-2 border-warning shadow-lg">
       <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title fw-bold"><i class="fas fa-user-lock me-2"></i>Admin Authentication</h5>
+        <h5 class="modal-title fw-bold"><i class="fas fa-shield-alt me-2"></i>Admin OTP Verification</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
+      
       <div class="modal-body p-4">
-        <div class="mb-3">
-          <label class="form-label fw-bold">Admin Username</label>
-          <input type="text" class="form-control" id="loginUsername" placeholder="e.g. admin / vikash">
+        <!-- Step 1: Request OTP -->
+        <div id="otpStep1">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Admin Name</label>
+            <input type="text" class="form-control" id="adminNameInput" placeholder="e.g. Vikash Jha">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Authorized Email ID</label>
+            <input type="email" class="form-control" id="adminEmailInput" placeholder="vikashjha9137@gmail.com">
+          </div>
+          
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="badge bg-warning text-dark px-2 py-1" id="otpAttemptsBadge">
+              <i class="fas fa-hourglass-half me-1"></i>Attempts left: 3/3
+            </span>
+            <small class="text-muted">Resets every 24h</small>
+          </div>
+
+          <button type="button" class="btn btn-warning w-100 fw-bold text-dark py-2" id="sendOtpBtn" onclick="sendAdminOTP()">
+            <i class="fas fa-paper-plane me-1"></i> Send OTP to Email
+          </button>
         </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold">Secret Password</label>
-          <input type="password" class="form-control" id="loginPassword" placeholder="Enter password">
+
+        <!-- Step 2: Enter 6-digit OTP -->
+        <div id="otpStep2" style="display: none;">
+          <div class="alert alert-info py-2 small mb-3">
+            A 6-digit OTP has been sent to <strong id="sentEmailDisplay"></strong>.
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Enter 6-Digit OTP</label>
+            <input type="text" maxlength="6" class="form-control text-center fs-3 fw-bold" id="otpCodeInput" placeholder="------">
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary w-50" onclick="resetOTPForm()">Back</button>
+            <button type="button" class="btn btn-success w-50 fw-bold" onclick="verifyAdminOTP()">Verify & Login</button>
+          </div>
         </div>
-        <div class="text-muted small">
-          * Authorized committee heads only. All actions are logged.
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger fw-bold" onclick="performLogin()">Login</button>
       </div>
     </div>
   </div>
@@ -721,16 +755,43 @@
   </div>
 </div>
 
-<!-- Core Firebase & Admin Application Logic -->
+<!-- Core JavaScript -->
 <script>
-  // Auth Config (Expandable multi-admin map)
-  const ADMIN_CREDENTIALS = {
-    "admin": "ganpati2026",
-    "vikash": "vikash2026",
-    "samiti": "bappa2026"
+  // Dynamic 2026 Collection Names
+  const CURRENT_YEAR = "2026";
+  const COLLECTIONS = {
+    donations: `donations_${CURRENT_YEAR}`,
+    expenses: `expenses_${CURRENT_YEAR}`,
+    members: `members_${CURRENT_YEAR}`,
+    gallery: `gallery_${CURRENT_YEAR}`,
+    logs: `activity_logs_${CURRENT_YEAR}`,
+    flag: `HideShowFlagAdmin`
   };
 
+  // Authorized Admin Emails
+  const AUTHORIZED_ADMINS = [
+    "vikashjha9137@gmail.com"
+  ];
+
+  const MAX_OTP_ATTEMPTS = 3;
+
+  // Retrieve or generate persistent device identifier
+  function getDeviceIdentifier() {
+    let devId = localStorage.getItem("ganpati_device_uuid");
+    if (!devId) {
+      devId = "DEV-" + Math.random().toString(36).substring(2, 9).toUpperCase() + "-" + Date.now().toString(36).toUpperCase();
+      localStorage.setItem("ganpati_device_uuid", devId);
+    }
+    return devId;
+  }
+
+  // Session variables
   let currentAdmin = localStorage.getItem("ganpatiAdminUser") || null;
+  let currentAdminEmail = localStorage.getItem("ganpatiAdminEmail") || null;
+  let generatedOTP = null;
+  let otpExpiryTimer = null;
+  let pendingAdminName = "";
+  let pendingAdminEmail = "";
 
   // SPA Navigation
   function navigateTo(pageId, pushState = true) {
@@ -768,14 +829,14 @@
     }
   });
 
-  // Authentication Handlers
+  // Authentication UI Update
   function updateAuthUI() {
     const adminDisplay = document.getElementById("currentAdminName");
     const authBtnText = document.getElementById("authBtnText");
     const authBtn = document.getElementById("authBtn");
 
-    if (currentAdmin) {
-      adminDisplay.textContent = currentAdmin;
+    if (currentAdmin && currentAdminEmail) {
+      adminDisplay.textContent = `${currentAdmin} (${currentAdminEmail.split('@')[0]})`;
       authBtnText.textContent = "Logout";
       authBtn.classList.replace("btn-outline-light", "btn-warning");
       authBtn.classList.add("text-dark");
@@ -792,64 +853,189 @@
       if (confirm(`Log out from admin account '${currentAdmin}'?`)) {
         logActivity("LOGOUT", `Admin ${currentAdmin} logged out`);
         currentAdmin = null;
+        currentAdminEmail = null;
         localStorage.removeItem("ganpatiAdminUser");
+        localStorage.removeItem("ganpatiAdminEmail");
         updateAuthUI();
         alert("Logged out successfully.");
       }
     } else {
+      const email = document.getElementById('adminEmailInput').value.trim().toLowerCase() || (AUTHORIZED_ADMINS[0] || "");
+      const remaining = getOtpAttemptsLeft(email);
+      document.getElementById('otpAttemptsBadge').innerHTML = `<i class="fas fa-hourglass-half me-1"></i>Attempts left: ${remaining}/${MAX_OTP_ATTEMPTS}`;
+      resetOTPForm();
       const modal = new bootstrap.Modal(document.getElementById('loginModal'));
       modal.show();
     }
   }
 
-  function performLogin() {
-    const u = document.getElementById('loginUsername').value.trim();
-    const p = document.getElementById('loginPassword').value.trim();
-
-    if (ADMIN_CREDENTIALS[u] && ADMIN_CREDENTIALS[u] === p) {
-      currentAdmin = u;
-      localStorage.setItem("ganpatiAdminUser", u);
-      updateAuthUI();
-      bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-      document.getElementById('loginUsername').value = "";
-      document.getElementById('loginPassword').value = "";
-      logActivity("LOGIN", `Admin ${u} logged in`);
-      alert(`Welcome, ${u}! You now have full Edit/Delete permissions.`);
-    } else {
-      alert("Invalid Username or Password!");
-    }
-  }
-
   function requireAdminAuth(actionName) {
-    if (!currentAdmin) {
-      alert(`Access Denied! Please login as an admin to ${actionName}.`);
+    if (!currentAdmin || !currentAdminEmail) {
+      alert(`Access Denied! Please verify your phone/email via OTP to ${actionName}.`);
       handleAuthClick();
       return false;
     }
     return true;
   }
 
-  // Audit Logging
+  // OTP Rate Limiting
+  function getOtpAttemptsLeft(email) {
+    if (!email) return MAX_OTP_ATTEMPTS;
+    const key = `otp_attempts_${email.trim().toLowerCase()}`;
+    const record = JSON.parse(localStorage.getItem(key)) || { count: 0, date: new Date().toDateString() };
+    
+    if (record.date !== new Date().toDateString()) {
+      record.count = 0;
+      record.date = new Date().toDateString();
+      localStorage.setItem(key, JSON.stringify(record));
+    }
+    return Math.max(0, MAX_OTP_ATTEMPTS - record.count);
+  }
+
+  function incrementOtpAttempt(email) {
+    const key = `otp_attempts_${email.trim().toLowerCase()}`;
+    const record = JSON.parse(localStorage.getItem(key)) || { count: 0, date: new Date().toDateString() };
+    record.count += 1;
+    record.date = new Date().toDateString();
+    localStorage.setItem(key, JSON.stringify(record));
+  }
+
+  // Send OTP
+  function sendAdminOTP() {
+    const name = document.getElementById('adminNameInput').value.trim();
+    const email = document.getElementById('adminEmailInput').value.trim().toLowerCase();
+    const sendBtn = document.getElementById('sendOtpBtn');
+
+    if (!name || !email) {
+      alert("Please enter both Admin Name and Email.");
+      return;
+    }
+
+    if (!AUTHORIZED_ADMINS.includes(email)) {
+      alert("Access Denied! This email is not on the authorized committee list.");
+      return;
+    }
+
+    const attemptsLeft = getOtpAttemptsLeft(email);
+    if (attemptsLeft <= 0) {
+      alert("Daily OTP limit reached (0/3). Please try again tomorrow.");
+      return;
+    }
+
+    generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+    pendingAdminName = name;
+    pendingAdminEmail = email;
+
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Sending OTP...`;
+
+    const templateParams = {
+      to_name: name,
+      to_email: email,
+      otp_code: generatedOTP,
+      samiti_name: "माँ कृपा गणपति समिति 2026",
+      time_stamp: new Date().toLocaleTimeString()
+    };
+
+    // Replace SERVICE_ID and TEMPLATE_ID with your EmailJS IDs
+    emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", templateParams)
+      .then(() => {
+        incrementOtpAttempt(email);
+        const remaining = getOtpAttemptsLeft(email);
+        document.getElementById('otpAttemptsBadge').innerHTML = `<i class="fas fa-hourglass-half me-1"></i>Attempts left: ${remaining}/${MAX_OTP_ATTEMPTS}`;
+
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = `<i class="fas fa-paper-plane me-1"></i> Send OTP to Email`;
+        
+        document.getElementById('otpStep1').style.display = 'none';
+        document.getElementById('otpStep2').style.display = 'block';
+        document.getElementById('sentEmailDisplay').textContent = email;
+
+        if (otpExpiryTimer) clearTimeout(otpExpiryTimer);
+        otpExpiryTimer = setTimeout(() => {
+          generatedOTP = null;
+          alert("OTP expired. Please request a new one.");
+          resetOTPForm();
+        }, 5 * 60 * 1000);
+      })
+      .catch(error => {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = `<i class="fas fa-paper-plane me-1"></i> Send OTP to Email`;
+        console.warn("EmailJS key pending or failed. For testing, your OTP is:", generatedOTP);
+        
+        // Fallback testing flow so you can test right now before EmailJS setup
+        incrementOtpAttempt(email);
+        document.getElementById('otpStep1').style.display = 'none';
+        document.getElementById('otpStep2').style.display = 'block';
+        document.getElementById('sentEmailDisplay').textContent = email + " (Test Mode: Check Console for OTP)";
+        alert("Notice: EmailJS keys pending. For testing purposes, your OTP is: " + generatedOTP);
+      });
+  }
+
+  // Verify OTP
+  function verifyAdminOTP() {
+    const enteredOTP = document.getElementById('otpCodeInput').value.trim();
+
+    if (!generatedOTP) {
+      alert("OTP expired or invalid. Please request again.");
+      resetOTPForm();
+      return;
+    }
+
+    if (enteredOTP === generatedOTP) {
+      currentAdmin = pendingAdminName;
+      currentAdminEmail = pendingAdminEmail;
+
+      localStorage.setItem("ganpatiAdminUser", currentAdmin);
+      localStorage.setItem("ganpatiAdminEmail", currentAdminEmail);
+      localStorage.setItem("ganpati_verified_device", getDeviceIdentifier());
+
+      updateAuthUI();
+      bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+
+      logActivity("OTP_LOGIN_VERIFIED", `Device verified & logged in`);
+      alert(`Device verified! Welcome, ${currentAdmin}.`);
+      resetOTPForm();
+    } else {
+      alert("Incorrect OTP! Please check your email and try again.");
+    }
+  }
+
+  function resetOTPForm() {
+    document.getElementById('otpStep1').style.display = 'block';
+    document.getElementById('otpStep2').style.display = 'none';
+    document.getElementById('otpCodeInput').value = '';
+    generatedOTP = null;
+  }
+
+  // Activity Logging with persistent email & device
   function logActivity(action, details) {
-    db.collection("activity_logs").add({
-      admin: currentAdmin || "System",
+    const logPayload = {
+      admin: currentAdmin || "Guest",
+      email: currentAdminEmail || localStorage.getItem("ganpatiAdminEmail") || "Unverified",
+      deviceId: getDeviceIdentifier(),
       action: action,
       details: details,
       timestamp: new Date()
-    }).catch(err => console.warn("Log write failed:", err));
+    };
+
+    db.collection(COLLECTIONS.logs).add(logPayload)
+      .catch(err => console.warn("Log write failed:", err));
   }
 
   function loadAuditLogs() {
-    db.collection("activity_logs").orderBy("timestamp", "desc").limit(40).get()
+    db.collection(COLLECTIONS.logs).orderBy("timestamp", "desc").limit(50).get()
       .then(snapshot => {
         const tbody = document.getElementById("auditLogsTable");
         if (snapshot.empty) {
-          tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No activity logged yet</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No activity logged yet</td></tr>`;
           return;
         }
+
         tbody.innerHTML = snapshot.docs.map(doc => {
           const d = doc.data();
           const time = d.timestamp ? new Date(d.timestamp.toDate()).toLocaleString('hi-IN') : 'N/A';
+          
           let badgeClass = 'log-badge-add';
           if (d.action.includes('DELETE')) badgeClass = 'log-badge-delete';
           else if (d.action.includes('EDIT') || d.action.includes('UPDATE')) badgeClass = 'log-badge-edit';
@@ -857,7 +1043,11 @@
           return `
             <tr>
               <td class="small text-muted">${time}</td>
-              <td class="fw-bold"><i class="fas fa-user-circle me-1"></i>${d.admin || 'Unknown'}</td>
+              <td>
+                <div class="fw-bold"><i class="fas fa-user-circle me-1"></i>${d.admin || 'Unknown'}</div>
+                <small class="text-muted">${d.email || 'N/A'}</small>
+              </td>
+              <td><code class="small text-dark">${d.deviceId || 'N/A'}</code></td>
               <td><span class="badge ${badgeClass}">${d.action}</span></td>
               <td>${d.details}</td>
             </tr>
@@ -866,7 +1056,7 @@
       });
   }
 
-  // Donations Logic (Add, Edit, Delete)
+  // Donations Logic
   let donations = [];
   function addDonation() {
     if (!requireAdminAuth("add a donation")) return;
@@ -877,10 +1067,12 @@
     const amount = parseFloat(document.getElementById('donationAmount').value);
     
     if (roomNumber && name && amount) {
-      db.collection("donations").add({
-        roomNumber, name, paymentMode, amount, 
+      db.collection(COLLECTIONS.donations).add({
+        roomNumber, name, paymentMode, amount,
+        year: 2026,
         date: new Date().toLocaleDateString('en-GB'),
-        createdBy: currentAdmin
+        createdBy: currentAdmin,
+        adminEmail: currentAdminEmail
       }).then(() => {
         logActivity("ADD_DONATION", `Added ₹${amount} for ${name} (Room ${roomNumber})`);
         clearDonationForm(); 
@@ -892,7 +1084,7 @@
   }
 
   function loadDonations() {
-    db.collection("donations").get().then(q => {
+    db.collection(COLLECTIONS.donations).get().then(q => {
       donations = [];
       q.forEach(doc => { 
         let d = doc.data(); 
@@ -948,9 +1140,10 @@
     const paymentMode = document.getElementById('editDonationMode').value;
     const amount = parseFloat(document.getElementById('editDonationAmount').value);
 
-    db.collection("donations").doc(id).update({
+    db.collection(COLLECTIONS.donations).doc(id).update({
       roomNumber, name, paymentMode, amount,
       lastModifiedBy: currentAdmin,
+      lastModifiedEmail: currentAdminEmail,
       lastModifiedAt: new Date()
     }).then(() => {
       logActivity("EDIT_DONATION", `Modified record for ${name} (Room ${roomNumber}) to ₹${amount}`);
@@ -963,7 +1156,7 @@
     if (!requireAdminAuth("delete donation")) return;
     const item = donations.find(d => d.id === id);
     if (confirm(`Delete donation from ${item ? item.name : 'this record'}?`)) {
-      db.collection("donations").doc(id).delete().then(() => {
+      db.collection(COLLECTIONS.donations).doc(id).delete().then(() => {
         logActivity("DELETE_DONATION", `Deleted donation for ${item ? item.name : id}`);
         loadDonations();
       });
@@ -1006,13 +1199,15 @@
   }
 
   function saveExpense(name, amount, attachmentURL, attachmentName, attachmentSize) {
-    db.collection('expenses').add({
+    db.collection(COLLECTIONS.expenses).add({
       name, amount,
+      year: 2026,
       date: new Date().toLocaleDateString('en-GB'),
       attachmentURL: attachmentURL || null,
       attachmentName: attachmentName || null,
       attachmentSize: attachmentSize || null,
-      createdBy: currentAdmin
+      createdBy: currentAdmin,
+      adminEmail: currentAdminEmail
     }).then(() => {
       logActivity("ADD_EXPENSE", `Added expense: '${name}' for ₹${amount}`);
       clearExpenseForm();
@@ -1029,7 +1224,7 @@
   }
 
   function loadExpenses() {
-    db.collection("expenses").orderBy("amount", "desc").get()
+    db.collection(COLLECTIONS.expenses).orderBy("amount", "desc").get()
       .then(querySnapshot => {
         const expenses = [];
         querySnapshot.forEach(doc => {
@@ -1049,7 +1244,7 @@
       <div class="card p-3 mb-2 shadow-sm border d-flex flex-row justify-content-between align-items-center flex-wrap gap-2">
         <div>
           <h6 class="m-0 fw-bold text-danger">${exp.name || 'Unknown Expense'}</h6>
-          <small class="text-muted">Date: ${exp.date || 'N/A'} | Added by: ${exp.createdBy || 'Admin'}</small>
+          <small class="text-muted">Date: ${exp.date || 'N/A'} | Logged by: ${exp.createdBy || 'Admin'}</small>
           ${exp.attachmentURL ? `
             <div class="mt-1">
               <button onclick="window.open('${exp.attachmentURL}', '_blank')" class="btn btn-sm btn-outline-primary py-0">
@@ -1069,10 +1264,11 @@
 
     document.querySelector('#totalExpenses .amount').textContent = `₹${total.toLocaleString()}`;
   }
-function deleteExpense(id, name) {
+
+  function deleteExpense(id, name) {
     if (!requireAdminAuth("delete this expense")) return;
     if (confirm(`Remove expense '${name}'?`)) {
-      db.collection('expenses').doc(id).delete().then(() => {
+      db.collection(COLLECTIONS.expenses).doc(id).delete().then(() => {
         logActivity("DELETE_EXPENSE", `Deleted expense '${name}' (${id})`);
         loadExpenses();
       });
@@ -1109,13 +1305,15 @@ function deleteExpense(id, name) {
   }
 
   function saveMember(name, contact, photoURL, photoName) {
-    db.collection('members').add({
+    db.collection(COLLECTIONS.members).add({
       name, contact: contact || '',
       photoURL: photoURL || null,
       photoName: photoName || null,
+      year: 2026,
       date: new Date().toLocaleDateString('en-GB'),
       timestamp: new Date(),
-      addedBy: currentAdmin
+      addedBy: currentAdmin,
+      adminEmail: currentAdminEmail
     }).then(() => {
       logActivity("ADD_MEMBER", `Added member '${name}'`);
       clearMemberForm();
@@ -1135,7 +1333,7 @@ function deleteExpense(id, name) {
   }
 
   function loadMembers() {
-    db.collection("members").orderBy("timestamp", "asc").get()
+    db.collection(COLLECTIONS.members).orderBy("timestamp", "asc").get()
       .then(snapshot => {
         const members = [];
         snapshot.forEach(doc => members.push({ id: doc.id, ...doc.data() }));
@@ -1175,7 +1373,7 @@ function deleteExpense(id, name) {
   function deleteMember(id, name) {
     if (!requireAdminAuth("delete member")) return;
     if (confirm(`Remove member '${name}' from committee list?`)) {
-      db.collection("members").doc(id).delete().then(() => {
+      db.collection(COLLECTIONS.members).doc(id).delete().then(() => {
         logActivity("DELETE_MEMBER", `Removed member '${name}'`);
         loadMembers();
       });
@@ -1192,14 +1390,16 @@ function deleteExpense(id, name) {
       const file = files[i];
       uploadToCloudinary(file, async (url, fname, fsize) => {
         if (url) {
-          await db.collection("gallery").add({
+          await db.collection(COLLECTIONS.gallery).add({
             url: url,
             name: file.name,
             type: file.type,
             size: file.size,
+            year: 2026,
             date: new Date().toLocaleDateString('hi-IN'),
             uploadDate: new Date(),
-            uploadedBy: currentAdmin
+            uploadedBy: currentAdmin,
+            adminEmail: currentAdminEmail
           });
           logActivity("UPLOAD_PHOTO", `Uploaded photo: ${file.name}`);
           loadGallery();
@@ -1211,12 +1411,12 @@ function deleteExpense(id, name) {
 
   async function loadGallery() {
     try {
-      const snapshot = await db.collection('gallery').orderBy('uploadDate', 'desc').get();
+      const snapshot = await db.collection(COLLECTIONS.gallery).orderBy('uploadDate', 'desc').get();
       const images = [];
       snapshot.forEach(doc => images.push({ id: doc.id, ...doc.data() }));
       renderGallery(images);
     } catch (e) {
-      const snapshot = await db.collection('gallery').get();
+      const snapshot = await db.collection(COLLECTIONS.gallery).get();
       const images = [];
       snapshot.forEach(doc => images.push({ id: doc.id, ...doc.data() }));
       renderGallery(images);
@@ -1247,7 +1447,7 @@ function deleteExpense(id, name) {
   function deleteImage(id, name) {
     if (!requireAdminAuth("delete photo")) return;
     if (confirm(`Permanently delete this photo?`)) {
-      db.collection('gallery').doc(id).delete().then(() => {
+      db.collection(COLLECTIONS.gallery).doc(id).delete().then(() => {
         logActivity("DELETE_PHOTO", `Deleted photo: ${name}`);
         loadGallery();
       });
@@ -1291,7 +1491,7 @@ function deleteExpense(id, name) {
   });
 </script>
 
-<!-- Firebase Config -->
+<!-- Firebase Config Initialization -->
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyDHCFp2U83R2htaKKz5ZTRAPLahh7lkcXE",
@@ -1312,7 +1512,7 @@ function deleteExpense(id, name) {
 <!-- Cloudinary Upload Logic -->
 <script>
   const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dosohpffj/upload";
-  const CLOUDINARY_UPLOAD_PRESET = "Ganpati2025";
+  const CLOUDINARY_UPLOAD_PRESET = "Ganpati2026"; // Set to 2026 preset
 
   function uploadToCloudinary(file, callback) {
     const formData = new FormData();
@@ -1337,4 +1537,3 @@ function deleteExpense(id, name) {
 
 </body>
 </html>
-      
