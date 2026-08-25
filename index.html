@@ -24,7 +24,7 @@
   <script>
     (function() {
       // REPLACE WITH YOUR EMAILJS PUBLIC KEY WHEN READY
-      emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
+      emailjs.init("2CYOqkEZsJ3RBTdYy");
     })();
   </script>
 
@@ -671,7 +671,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">Authorized Email ID</label>
-            <input type="email" class="form-control" id="adminEmailInput" placeholder="vikashjha9137@gmail.com">
+            <input type="email" class="form-control" id="adminEmailInput" placeholder="admin@gmail.com">
           </div>
           
           <div class="d-flex justify-content-between align-items-center mb-3">
@@ -770,7 +770,7 @@
 
   // Authorized Admin Emails
   const AUTHORIZED_ADMINS = [
-    "vikashjha9137@gmail.com"
+    "arrow2064157vikash@gmail.com"
   ];
 
   const MAX_OTP_ATTEMPTS = 3;
@@ -938,7 +938,7 @@
     };
 
     // Replace SERVICE_ID and TEMPLATE_ID with your EmailJS IDs
-    emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", templateParams)
+    emailjs.send("service_c2r7jjt", "2CYOqkEZsJ3RBTdYy", templateParams)
       .then(() => {
         incrementOtpAttempt(email);
         const remaining = getOtpAttemptsLeft(email);
