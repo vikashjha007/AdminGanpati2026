@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>माँ कृपा गणपति समिति 2026 - Admin Portal</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts: Rozha One & Yantramanav -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Yantramanav:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-firestore.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-storage.min.js"></script>
+
+  <style>
+    :root {
+      --temple-sindoor: #b71c1c;
+      --temple-saffron: #e65100;
+      --temple-gold: #ffb300;
+      --temple-gold-light: #fff8e1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Yantramanav', sans-serif;
+      min-height: 100vh;
+      color: #212529;
+      background-color: #3e0c0c;
+      position: relative;
+    }
+
+    /* Ganpati Background Artwork */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(45, 10, 10, 0.82), rgba(45, 10, 10, 0.90)),
+        url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Ganesh_Chaturthi_2019.jpg/1200px-Ganesh_Chaturthi_2019.jpg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      background-attachment: fixed;
+      z-index: -1;
+    }
+
+    .temple-title {
+      font-family: 'Rozha One', serif;
+      letter-spacing: 0.8px;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--temple-sindoor) 0%, var(--temple-saffron) 60%, #e53935 100%);
+      color: #ffffff;
+      padding: 1.25rem 1rem;
+      border-bottom: 5px solid var(--temple-gold);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .header-border-pattern {
+      height: 8px;
+      background: repeating-linear-gradient(45deg, var(--temple-gold), var(--temple-gold) 12px, var(--temple-sindoor) 12px, var(--temple-sindoor) 24px);
+    }
+
+    .admin-pill {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1.5px solid var(--temple-gold);
+      color: #fff;
+      padding: 0.35rem 0.85rem;
+      border-radius: 50rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    /* Navigation */
+    .nav-container {
+      background: rgba(255, 255, 255, 0.98);
+      border-bottom: 2px solid var(--temple-gold);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .nav-btn {
+      font-weight: 600;
+      border-radius: 50rem;
+      padding: 0.45rem 1.15rem;
+      border: 1.5px solid #ffcc80;
+      background-color: var(--temple-gold-light);
+      color: var(--temple-saffron);
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+    }
+
+    .nav-btn:hover {
+      background-color: #ffe0b2;
+      color: var(--temple-sindoor);
+    }
+
+    .nav-btn.active {
+      background: linear-gradient(135deg, var(--temple-saffron), var(--temple-sindoor)) !important;
+      color: #ffffff !important;
+      border-color: var(--temple-sindoor);
+      box-shadow: 0 3px 10px rgba(183, 28, 28, 0.4);
+    }
+
+    /* Back Button Bar */
+    .action-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #ffffff;
+      border: 2px solid var(--temple-saffron);
+      color: var(--temple-saffron);
+      padding: 0.4rem 1.15rem;
+      border-radius: 50rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: all 0.2s ease;
+    }
+
+    .back-btn:hover {
+      background: var(--temple-saffron);
+      color: #ffffff;
+      transform: translateX(-3px);
+    }
+
+    /* Pages & Cards */
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.25s ease-in-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .temple-card {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 1.25rem;
+      border: 2px solid var(--temple-gold);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      padding: 2rem;
+    }
+
+    .card-header-temple {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 2px dashed #ffb74d;
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header-temple h2 {
+      font-family: 'Rozha One', serif;
+      font-size: 1.7rem;
+      color: var(--temple-sindoor);
+      margin: 0;
+    }
+
+    /* Portal Quick Cards */
+    .portal-card {
+      border-radius: 1.25rem;
+      color: #fff;
+      padding: 1.75rem 1.25rem;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+      transition: all 0.25s ease;
+      border: 2px solid rgba(255,255,255,0.3);
+      user-select: none;
+    }
+
+    .portal-card:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 12px 26px rgba(0,0,0,0.4);
+    }
+
+    .portal-card i {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
+    }
+
+    /* Form Controls */
+    .form-control, .form-select {
+      border: 1.5px solid #ffcc80;
+      border-radius: 0.6rem;
+      padding: 0.65rem 0.9rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: var(--temple-saffron);
+      box-shadow: 0 0 0 0.25rem rgba(230, 81, 0, 0.2);
+    }
+
+    .file-upload-box {
+      border: 2px dashed #ffb74d;
+      border-radius: 0.75rem;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      background: var(--temple-gold-light);
+      transition: all 0.25s ease;
+    }
+
+    .file-upload-box:hover {
+      border-color: var(--temple-saffron);
+      background: #ffe0b2;
+    }
+
+    .total-display-card {
+      border-radius: 1rem;
+      color: white;
+      padding: 1.25rem;
+      text-align: center;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+    }
+
+    /* Members Grid */
+    .member-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .member-card {
+      background: #fff;
+      border: 1.5px solid #ffe0b2;
+      border-radius: 1rem;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      transition: all 0.25s ease;
+    }
+
+    .member-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(183, 28, 28, 0.15);
+      border-color: var(--temple-gold);
+    }
+
+    .member-photo, .member-placeholder {
+      width: 85px;
+      height: 85px;
+      border-radius: 50%;
+      margin: 0 auto 1rem;
+      border: 3px solid var(--temple-gold);
+    }
+
+    .member-photo { object-fit: cover; }
+    
+    .member-placeholder {
+      background: var(--temple-gold-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: var(--temple-saffron);
+    }
+
+    /* Gallery Grid */
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .image-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 0.85rem;
+      overflow: hidden;
+      border: 2px solid var(--temple-gold);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      background: #fff;
+    }
+
+    .image-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    .image-item img:hover { transform: scale(1.06); }
+
+    .image-item .delete-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: rgba(183, 28, 28, 0.9);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* Log Box */
+    .log-badge-add { background: #d1fae5; color: #065f46; }
+    .log-badge-edit { background: #fef3c7; color: #92400e; }
+    .log-badge-delete { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header text-center">
+  <div class="container d-flex justify-content-between align-items-center mb-1">
+    <div class="d-flex align-items-center gap-2">
+      <span class="admin-pill" id="adminStatusDisplay">
+        <i class="fas fa-shield-alt text-warning me-1"></i> <span id="currentAdminName">Guest</span>
+      </span>
+    </div>
+    
+    <div class="d-flex justify-content-center align-items-center gap-2">
+      <i class="fas fa-om fa-2x text-warning"></i>
+      <h1 class="temple-title display-6 m-0 fw-bold">माँ कृपा गणपति समिति 2026</h1>
+      <i class="fas fa-om fa-2x text-warning"></i>
+    </div>
+
+    <div>
+      <button class="btn btn-sm btn-outline-light fw-bold rounded-pill px-3" id="authBtn" onclick="handleAuthClick()">
+        <i class="fas fa-sign-in-alt me-1"></i> <span id="authBtnText">Login</span>
+      </button>
+    </div>
+  </div>
+  <p class="m-0 text-warning-emphasis fw-medium">॥ श्री गणेशाय नमः ॥ Admin Management Portal</p>
+</header>
+<div class="header-border-pattern"></div>
+
+<!-- Navigation Bar -->
+<nav class="nav-container py-2" id="navigation" style="display: none;">
+  <div class="container d-flex justify-content-center flex-wrap gap-2">
+    <button class="nav-btn" data-page="home" onclick="navigateTo('home')"><i class="fas fa-home me-1"></i>Home</button>
+    <button class="nav-btn" data-page="donations" onclick="navigateTo('donations')"><i class="fas fa-hand-holding-heart me-1"></i>Donations</button>
+    <button class="nav-btn" data-page="expenses" onclick="navigateTo('expenses')"><i class="fas fa-file-invoice-dollar me-1"></i>Expenses</button>
+    <button class="nav-btn" data-page="members" onclick="navigateTo('members')"><i class="fas fa-users me-1"></i>Members</button>
+    <button class="nav-btn" data-page="gallery" onclick="navigateTo('gallery')"><i class="fas fa-images me-1"></i>Gallery</button>
+    <button class="nav-btn" data-page="auditLogs" onclick="navigateTo('auditLogs')"><i class="fas fa-history me-1"></i>Logs</button>
+  </div>
+</nav>
+
+<!-- Main Container -->
+<main class="container my-4">
+  
+  <!-- Home View -->
+  <div id="home" class="page active">
+    <div class="temple-card text-center mb-4">
+      <div class="mb-3">
+        <i class="fas fa-om text-warning display-4"></i>
+      </div>
+      <h2 class="temple-title text-danger fw-bold mb-2">माँ कृपा गणपति समिति 2026 - Admin Workspace</h2>
+      <p class="text-muted lead mb-4">Complete control over donations, expenses, committee members, and photo archives</p>
+      
+      <div class="row g-3 justify-content-center">
+        <div class="col-md-6 col-lg-4">
+          <div class="portal-card" style="background: linear-gradient(135deg, #059669, #10b981);" onclick="navigateTo('donations')">
+            <i class="fas fa-hand-holding-heart"></i>
+            <h4 class="fw-bold">Donations</h4>
+            <p class="small mb-0 opacity-75">Add, Edit & Track All Receipts</p>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+          <div class="portal-card" style="background: linear-gradient(135deg, #1d4ed8, #3b82f6);" onclick="navigateTo('expenses')">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <h4 class="fw-bold">Expenses</h4>
+            <p class="small mb-0 opacity-75">Manage & Audit Samiti Costs</p>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+          <div class="portal-card" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);" onclick="navigateTo('members')">
+            <i class="fas fa-users"></i>
+            <h4 class="fw-bold">Members</h4>
+            <p class="small mb-0 opacity-75">Manage Active Committee Members</p>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+          <div class="portal-card" style="background: linear-gradient(135deg, #c2410c, #ea580c);" onclick="navigateTo('gallery')">
+            <i class="fas fa-images"></i>
+            <h4 class="fw-bold">Gallery</h4>
+            <p class="small mb-0 opacity-75">Upload & Remove Festival Photos</p>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+          <div class="portal-card" style="background: linear-gradient(135deg, #475569, #334155);" onclick="navigateTo('auditLogs')">
+            <i class="fas fa-history text-warning"></i>
+            <h4 class="fw-bold">Activity Logs</h4>
+            <p class="small mb-0 opacity-75">Full Audit of Who Changed What</p>
+          </div>
+        </div>
+
+        <div class="col-md-12 col-lg-8 mt-4">
+          <div class="p-3 bg-white rounded-3 border border-warning shadow-sm d-flex justify-content-between align-items-center">
+            <div class="text-start">
+              <h6 class="fw-bold m-0 text-dark">Public Site Visibility Toggle</h6>
+              <small class="text-muted">Controls whether admin buttons are visible on public client app</small>
+            </div>
+            <button class="btn btn-outline-danger btn-sm fw-bold px-3" onclick="togglePublicVisibility()">
+              <i class="fas fa-toggle-on me-1"></i> Switch Visibility Flag
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Donations View -->
+  <div id="donations" class="page">
+    <div class="temple-card">
+      <div class="action-top-bar">
+        <button type="button" class="back-btn" onclick="navigateTo('home')">
+          <i class="fas fa-arrow-left"></i> <span>Back to Home</span>
+        </button>
+      </div>
+
+      <div class="card-header-temple">
+        <i class="fas fa-hand-holding-heart fa-2x text-success"></i>
+        <h2>Donation Management 2026</h2>
+      </div>
+
+      <!-- Add Donation Form -->
+      <div class="row g-3 p-3 bg-light rounded-3 border mb-4" id="add-donation">
+        <div class="col-md-3">
+          <input type="text" class="form-control" id="roomNumber" placeholder="Room Number">
+        </div>
+        <div class="col-md-3">
+          <input type="text" class="form-control" id="donorName" placeholder="Donor Name">
+        </div>
+        <div class="col-md-2">
+          <select class="form-select" id="paymentMode">
+            <option value="cash">Cash</option>
+            <option value="online">Online</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <input type="number" class="form-control" id="donationAmount" placeholder="Amount (₹)">
+        </div>
+        <div class="col-md-2 d-grid">
+          <button class="btn btn-success fw-bold" onclick="addDonation()">
+            <i class="fas fa-plus me-1"></i> Add
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle border">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Room No.</th>
+              <th scope="col">Name</th>
+              <th scope="col">Payment Mode</th>
+              <th scope="col">Amount (₹)</th>
+              <th scope="col" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="donationsTable"></tbody>
+        </table>
+      </div>
+
+      <div class="total-display-card mt-4" id="totalDonations" style="background: linear-gradient(135deg, #059669, #10b981);">
+        <h5 class="mb-1 opacity-75">Total Donations Received</h5>
+        <div class="amount display-6 fw-bold">₹0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expenses View -->
+  <div id="expenses" class="page">
+    <div class="temple-card">
+      <div class="action-top-bar">
+        <button type="button" class="back-btn" onclick="navigateTo('home')">
+          <i class="fas fa-arrow-left"></i> <span>Back to Home</span>
+        </button>
+      </div>
+
+      <div class="card-header-temple">
+        <i class="fas fa-file-invoice-dollar fa-2x text-primary"></i>
+        <h2>Expense Management 2026</h2>
+      </div>
+
+      <!-- Add Expense Form -->
+      <div class="row g-3 p-3 bg-light rounded-3 border mb-4" id="add-expense">
+        <div class="col-md-6 d-flex flex-column gap-3">
+          <input type="text" class="form-control" id="expenseName" placeholder="Expense Name / Purpose">
+          <input type="number" class="form-control" id="expenseAmount" placeholder="Amount (₹)">
+        </div>
+        <div class="col-md-6 d-flex flex-column gap-2">
+          <div class="file-upload-box flex-grow-1" onclick="document.getElementById('expenseFile').click()">
+            <input type="file" id="expenseFile" accept="image/*,application/pdf,.doc,.docx" onchange="handleExpenseFile(this)" style="display:none;">
+            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-1"></i>
+            <p id="expenseFileName" class="small m-0 text-muted">Click to upload bill or attachment</p>
+          </div>
+          <button class="btn btn-primary fw-bold" onclick="addExpense()">
+            <i class="fas fa-plus me-1"></i> Add Expense
+          </button>
+        </div>
+      </div>
+
+      <div id="expensesList"></div>
+
+      <div class="total-display-card mt-4" id="totalExpenses" style="background: linear-gradient(135deg, #1d4ed8, #3b82f6);">
+        <h5 class="mb-1 opacity-75">Total Expenses</h5>
+        <div class="amount display-6 fw-bold">₹0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Members View -->
+  <div id="members" class="page">
+    <div class="temple-card">
+      <div class="action-top-bar">
+        <button type="button" class="back-btn" onclick="navigateTo('home')">
+          <i class="fas fa-arrow-left"></i> <span>Back to Home</span>
+        </button>
+      </div>
+
+      <div class="card-header-temple">
+        <i class="fas fa-users fa-2x" style="color: #7c3aed;"></i>
+        <h2>Committee Members 2026</h2>
+      </div>
+
+      <!-- Add Member Form -->
+      <div class="row g-3 p-3 bg-light rounded-3 border mb-4" id="add-member">
+        <div class="col-md-6 d-flex flex-column gap-3">
+          <input type="text" class="form-control" id="memberName" placeholder="Member Name">
+          <input type="text" class="form-control" id="memberContact" placeholder="Contact Number (10 digits)">
+        </div>
+        <div class="col-md-6 d-flex flex-column gap-2">
+          <div class="file-upload-box flex-grow-1" onclick="document.getElementById('memberPhoto').click()">
+            <input type="file" id="memberPhoto" accept="image/*" onchange="handleMemberPhoto(this)" style="display:none;">
+            <div id="photoPreview">
+              <i class="fas fa-camera fa-2x text-muted mb-1"></i>
+              <p id="photoFileName" class="small m-0 text-muted">Click to upload member photo</p>
+            </div>
+          </div>
+          <button class="btn btn-dark fw-bold" style="background: #7c3aed; border-color: #7c3aed;" onclick="addMember()">
+            <i class="fas fa-plus me-1"></i> Add Member
+          </button>
+        </div>
+      </div>
+
+      <div class="member-grid" id="membersGrid"></div>
+      <div id="membersEmpty" class="text-center py-5 text-muted" style="display: none;">
+        <i class="fas fa-users fa-3x mb-2 opacity-50"></i>
+        <p>No committee members added yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gallery View -->
+  <div id="gallery" class="page">
+    <div class="temple-card">
+      <div class="action-top-bar">
+        <button type="button" class="back-btn" onclick="navigateTo('home')">
+          <i class="fas fa-arrow-left"></i> <span>Back to Home</span>
+        </button>
+      </div>
+
+      <div class="card-header-temple">
+        <i class="fas fa-images fa-2x text-danger"></i>
+        <h2>Festival Gallery 2026</h2>
+      </div>
+
+      <!-- Upload Trigger -->
+      <div class="file-upload-box btn-upload-image mb-4" onclick="document.getElementById('galleryImages').click()">
+        <input type="file" id="galleryImages" accept="image/*" multiple onchange="handleGalleryImages(this)" style="display:none;">
+        <i class="fas fa-camera-retro fa-3x text-danger mb-2"></i>
+        <h5 class="fw-bold mb-1">Upload Festival Photos</h5>
+        <p class="text-muted small m-0">Click to select multiple photos</p>
+      </div>
+
+      <div class="image-grid" id="imageGrid"></div>
+
+      <div id="galleryEmpty" class="text-center py-5 text-muted" style="display: none;">
+        <i class="fas fa-images fa-3x mb-2 opacity-50"></i>
+        <p>No photos uploaded yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audit Logs View -->
+  <div id="auditLogs" class="page">
+    <div class="temple-card">
+      <div class="action-top-bar">
+        <button type="button" class="back-btn" onclick="navigateTo('home')">
+          <i class="fas fa-arrow-left"></i> <span>Back to Home</span>
+        </button>
+      </div>
+
+      <div class="card-header-temple">
+        <i class="fas fa-history fa-2x text-warning"></i>
+        <h2>Activity & Audit Logs</h2>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover border">
+          <thead class="table-light">
+            <tr>
+              <th>Timestamp</th>
+              <th>Admin User</th>
+              <th>Action</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="auditLogsTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Login Modal -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-2 border-warning shadow-lg">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold"><i class="fas fa-user-lock me-2"></i>Admin Authentication</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Admin Username</label>
+          <input type="text" class="form-control" id="loginUsername" placeholder="e.g. admin / vikash">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Secret Password</label>
+          <input type="password" class="form-control" id="loginPassword" placeholder="Enter password">
+        </div>
+        <div class="text-muted small">
+          * Authorized committee heads only. All actions are logged.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger fw-bold" onclick="performLogin()">Login</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Donation Modal -->
+<div class="modal fade" id="editDonationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold">Edit Donation</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editDonationId">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Room Number</label>
+          <input type="text" class="form-control" id="editDonationRoom">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Donor Name</label>
+          <input type="text" class="form-control" id="editDonationName">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Payment Mode</label>
+          <select class="form-select" id="editDonationMode">
+            <option value="cash">Cash</option>
+            <option value="online">Online</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Amount (₹)</label>
+          <input type="number" class="form-control" id="editDonationAmount">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success fw-bold" onclick="saveDonationEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Full Image View Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-transparent border-0 text-center">
+      <div class="position-relative d-inline-block mx-auto">
+        <img id="modalImage" src="" alt="Festival Photo" class="img-fluid rounded border border-3 border-warning shadow-lg" style="max-height: 80vh;">
+        <button type="button" class="btn btn-danger position-absolute top-0 end-0 m-2 rounded-circle" data-bs-dismiss="modal">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Core Firebase & Admin Application Logic -->
+<script>
+  // Auth Config (Expandable multi-admin map)
+  const ADMIN_CREDENTIALS = {
+    "admin": "ganpati2026",
+    "vikash": "vikash2026",
+    "samiti": "bappa2026"
+  };
+
+  let currentAdmin = localStorage.getItem("ganpatiAdminUser") || null;
+
+  // SPA Navigation
+  function navigateTo(pageId, pushState = true) {
+    if (!pageId) return;
+    const pageEl = document.getElementById(pageId);
+    if (!pageEl) return;
+
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    pageEl.classList.add('active');
+
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    const navBtn = document.querySelector(`.nav-btn[data-page="${pageId}"]`);
+    if (navBtn) navBtn.classList.add('active');
+
+    const navContainer = document.getElementById('navigation');
+    if (navContainer) {
+      navContainer.style.display = (pageId !== 'home') ? 'block' : 'none';
+    }
+
+    if (pushState) {
+      history.pushState({ page: pageId }, '', '#' + pageId);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (pageId === 'auditLogs') {
+      loadAuditLogs();
+    }
+  }
+
+  window.addEventListener('popstate', function(event) {
+    if (event.state && event.state.page) {
+      navigateTo(event.state.page, false);
+    } else {
+      navigateTo('home', false);
+    }
+  });
+
+  // Authentication Handlers
+  function updateAuthUI() {
+    const adminDisplay = document.getElementById("currentAdminName");
+    const authBtnText = document.getElementById("authBtnText");
+    const authBtn = document.getElementById("authBtn");
+
+    if (currentAdmin) {
+      adminDisplay.textContent = currentAdmin;
+      authBtnText.textContent = "Logout";
+      authBtn.classList.replace("btn-outline-light", "btn-warning");
+      authBtn.classList.add("text-dark");
+    } else {
+      adminDisplay.textContent = "Guest (Read-Only)";
+      authBtnText.textContent = "Login";
+      authBtn.classList.replace("btn-warning", "btn-outline-light");
+      authBtn.classList.remove("text-dark");
+    }
+  }
+
+  function handleAuthClick() {
+    if (currentAdmin) {
+      if (confirm(`Log out from admin account '${currentAdmin}'?`)) {
+        logActivity("LOGOUT", `Admin ${currentAdmin} logged out`);
+        currentAdmin = null;
+        localStorage.removeItem("ganpatiAdminUser");
+        updateAuthUI();
+        alert("Logged out successfully.");
+      }
+    } else {
+      const modal = new bootstrap.Modal(document.getElementById('loginModal'));
+      modal.show();
+    }
+  }
+
+  function performLogin() {
+    const u = document.getElementById('loginUsername').value.trim();
+    const p = document.getElementById('loginPassword').value.trim();
+
+    if (ADMIN_CREDENTIALS[u] && ADMIN_CREDENTIALS[u] === p) {
+      currentAdmin = u;
+      localStorage.setItem("ganpatiAdminUser", u);
+      updateAuthUI();
+      bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+      document.getElementById('loginUsername').value = "";
+      document.getElementById('loginPassword').value = "";
+      logActivity("LOGIN", `Admin ${u} logged in`);
+      alert(`Welcome, ${u}! You now have full Edit/Delete permissions.`);
+    } else {
+      alert("Invalid Username or Password!");
+    }
+  }
+
+  function requireAdminAuth(actionName) {
+    if (!currentAdmin) {
+      alert(`Access Denied! Please login as an admin to ${actionName}.`);
+      handleAuthClick();
+      return false;
+    }
+    return true;
+  }
+
+  // Audit Logging
+  function logActivity(action, details) {
+    db.collection("activity_logs").add({
+      admin: currentAdmin || "System",
+      action: action,
+      details: details,
+      timestamp: new Date()
+    }).catch(err => console.warn("Log write failed:", err));
+  }
+
+  function loadAuditLogs() {
+    db.collection("activity_logs").orderBy("timestamp", "desc").limit(40).get()
+      .then(snapshot => {
+        const tbody = document.getElementById("auditLogsTable");
+        if (snapshot.empty) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No activity logged yet</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = snapshot.docs.map(doc => {
+          const d = doc.data();
+          const time = d.timestamp ? new Date(d.timestamp.toDate()).toLocaleString('hi-IN') : 'N/A';
+          let badgeClass = 'log-badge-add';
+          if (d.action.includes('DELETE')) badgeClass = 'log-badge-delete';
+          else if (d.action.includes('EDIT') || d.action.includes('UPDATE')) badgeClass = 'log-badge-edit';
+
+          return `
+            <tr>
+              <td class="small text-muted">${time}</td>
+              <td class="fw-bold"><i class="fas fa-user-circle me-1"></i>${d.admin || 'Unknown'}</td>
+              <td><span class="badge ${badgeClass}">${d.action}</span></td>
+              <td>${d.details}</td>
+            </tr>
+          `;
+        }).join('');
+      });
+  }
+
+  // Donations Logic (Add, Edit, Delete)
+  let donations = [];
+  function addDonation() {
+    if (!requireAdminAuth("add a donation")) return;
+
+    const roomNumber = document.getElementById('roomNumber').value.trim();
+    const name = document.getElementById('donorName').value.trim();
+    const paymentMode = document.getElementById('paymentMode').value;
+    const amount = parseFloat(document.getElementById('donationAmount').value);
+    
+    if (roomNumber && name && amount) {
+      db.collection("donations").add({
+        roomNumber, name, paymentMode, amount, 
+        date: new Date().toLocaleDateString('en-GB'),
+        createdBy: currentAdmin
+      }).then(() => {
+        logActivity("ADD_DONATION", `Added ₹${amount} for ${name} (Room ${roomNumber})`);
+        clearDonationForm(); 
+        loadDonations();
+      });
+    } else {
+      alert('Please fill all fields.');
+    }
+  }
+
+  function loadDonations() {
+    db.collection("donations").get().then(q => {
+      donations = [];
+      q.forEach(doc => { 
+        let d = doc.data(); 
+        d.id = doc.id; 
+        donations.push(d); 
+      });
+      donations.sort((a, b) => parseInt(a.roomNumber) - parseInt(b.roomNumber));
+      renderDonations();
+    });
+  }
+
+  function renderDonations() {
+    const tableBody = document.getElementById('donationsTable');
+    const totalAmount = donations.reduce((sum, d) => sum + (d.amount || 0), 0);
+    tableBody.innerHTML = donations.map(d => `
+      <tr>
+        <td class="fw-bold">${d.roomNumber}</td>
+        <td>${d.name}</td>
+        <td><span class="badge ${d.paymentMode === 'cash' ? 'bg-success' : 'bg-primary'}">${(d.paymentMode || 'cash').toUpperCase()}</span></td>
+        <td class="text-success fw-bold">₹${(d.amount || 0).toLocaleString()}</td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-warning me-1" onclick="openEditDonation('${d.id}')">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteDonation('${d.id}')">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `).join('');
+    document.querySelector('#totalDonations .amount').textContent = `₹${totalAmount.toLocaleString()}`;
+  }
+
+  function openEditDonation(id) {
+    if (!requireAdminAuth("edit donation")) return;
+    const item = donations.find(d => d.id === id);
+    if (!item) return;
+
+    document.getElementById('editDonationId').value = id;
+    document.getElementById('editDonationRoom').value = item.roomNumber;
+    document.getElementById('editDonationName').value = item.name;
+    document.getElementById('editDonationMode').value = item.paymentMode || 'cash';
+    document.getElementById('editDonationAmount').value = item.amount;
+
+    new bootstrap.Modal(document.getElementById('editDonationModal')).show();
+  }
+
+  function saveDonationEdit() {
+    if (!requireAdminAuth("save changes")) return;
+    const id = document.getElementById('editDonationId').value;
+    const roomNumber = document.getElementById('editDonationRoom').value.trim();
+    const name = document.getElementById('editDonationName').value.trim();
+    const paymentMode = document.getElementById('editDonationMode').value;
+    const amount = parseFloat(document.getElementById('editDonationAmount').value);
+
+    db.collection("donations").doc(id).update({
+      roomNumber, name, paymentMode, amount,
+      lastModifiedBy: currentAdmin,
+      lastModifiedAt: new Date()
+    }).then(() => {
+      logActivity("EDIT_DONATION", `Modified record for ${name} (Room ${roomNumber}) to ₹${amount}`);
+      bootstrap.Modal.getInstance(document.getElementById('editDonationModal')).hide();
+      loadDonations();
+    });
+  }
+
+  function deleteDonation(id) {
+    if (!requireAdminAuth("delete donation")) return;
+    const item = donations.find(d => d.id === id);
+    if (confirm(`Delete donation from ${item ? item.name : 'this record'}?`)) {
+      db.collection("donations").doc(id).delete().then(() => {
+        logActivity("DELETE_DONATION", `Deleted donation for ${item ? item.name : id}`);
+        loadDonations();
+      });
+    }
+  }
+
+  function clearDonationForm() {
+    document.getElementById('roomNumber').value = '';
+    document.getElementById('donorName').value = '';
+    document.getElementById('paymentMode').value = 'cash';
+    document.getElementById('donationAmount').value = '';
+  }
+
+  // Expenses Logic
+  let expenseAttachmentFile = null;
+
+  function handleExpenseFile(input) {
+    expenseAttachmentFile = input.files[0];
+    document.getElementById('expenseFileName').textContent = expenseAttachmentFile ?
+      `${expenseAttachmentFile.name} (${formatFileSize(expenseAttachmentFile.size)})` : "Click to upload bill or attachment";
+  }
+
+  function addExpense() {
+    if (!requireAdminAuth("add an expense")) return;
+    const name = document.getElementById('expenseName').value.trim();
+    const amount = parseFloat(document.getElementById('expenseAmount').value);
+
+    if (!name || !amount) {
+      alert('Please fill expense description and amount.');
+      return;
+    }
+
+    if (expenseAttachmentFile) {
+      uploadToCloudinary(expenseAttachmentFile, (url, fname, fsize) => {
+        saveExpense(name, amount, url, fname, fsize);
+      });
+    } else {
+      saveExpense(name, amount, null, null, null);
+    }
+  }
+
+  function saveExpense(name, amount, attachmentURL, attachmentName, attachmentSize) {
+    db.collection('expenses').add({
+      name, amount,
+      date: new Date().toLocaleDateString('en-GB'),
+      attachmentURL: attachmentURL || null,
+      attachmentName: attachmentName || null,
+      attachmentSize: attachmentSize || null,
+      createdBy: currentAdmin
+    }).then(() => {
+      logActivity("ADD_EXPENSE", `Added expense: '${name}' for ₹${amount}`);
+      clearExpenseForm();
+      loadExpenses();
+    });
+  }
+
+  function clearExpenseForm() {
+    document.getElementById('expenseName').value = '';
+    document.getElementById('expenseAmount').value = '';
+    document.getElementById('expenseFileName').textContent = 'Click to upload bill or attachment';
+    document.getElementById('expenseFile').value = '';
+    expenseAttachmentFile = null;
+  }
+
+  function loadExpenses() {
+    db.collection("expenses").orderBy("amount", "desc").get()
+      .then(querySnapshot => {
+        const expenses = [];
+        querySnapshot.forEach(doc => {
+          let data = doc.data();
+          data.id = doc.id;
+          expenses.push(data);
+        });
+        renderExpenses(expenses);
+      });
+  }
+
+  function renderExpenses(expenses) {
+    const container = document.getElementById('expensesList');
+    const total = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+
+    container.innerHTML = expenses.map(exp => `
+      <div class="card p-3 mb-2 shadow-sm border d-flex flex-row justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h6 class="m-0 fw-bold text-danger">${exp.name || 'Unknown Expense'}</h6>
+          <small class="text-muted">Date: ${exp.date || 'N/A'} | Added by: ${exp.createdBy || 'Admin'}</small>
+          ${exp.attachmentURL ? `
+            <div class="mt-1">
+              <button onclick="window.open('${exp.attachmentURL}', '_blank')" class="btn btn-sm btn-outline-primary py-0">
+                <i class="fas fa-paperclip me-1"></i>View Bill
+              </button>
+            </div>
+          ` : ''}
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <span class="fs-5 fw-bold text-success">₹${(exp.amount || 0).toLocaleString()}</span>
+          <button onclick="deleteExpense('${exp.id}', '${exp.name}')" class="btn btn-sm btn-outline-danger">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    document.querySelector('#totalExpenses .amount').textContent = `₹${total.toLocaleString()}`;
+  }
+function deleteExpense(id, name) {
+    if (!requireAdminAuth("delete this expense")) return;
+    if (confirm(`Remove expense '${name}'?`)) {
+      db.collection('expenses').doc(id).delete().then(() => {
+        logActivity("DELETE_EXPENSE", `Deleted expense '${name}' (${id})`);
+        loadExpenses();
+      });
+    }
+  }
+
+  // Members Management
+  let memberPhotoFile = null;
+
+  function handleMemberPhoto(input) {
+    memberPhotoFile = input.files[0] || null;
+    if (memberPhotoFile) {
+      document.getElementById('photoFileName').textContent = memberPhotoFile.name;
+    }
+  }
+
+  function addMember() {
+    if (!requireAdminAuth("add committee member")) return;
+    const name = document.getElementById('memberName').value.trim();
+    const contact = document.getElementById('memberContact').value.trim();
+    
+    if (!name) {
+      alert('Please enter member name.');
+      return;
+    }
+
+    if (memberPhotoFile) {
+      uploadToCloudinary(memberPhotoFile, (url, fname) => {
+        saveMember(name, contact, url, fname);
+      });
+    } else {
+      saveMember(name, contact, null, null);
+    }
+  }
+
+  function saveMember(name, contact, photoURL, photoName) {
+    db.collection('members').add({
+      name, contact: contact || '',
+      photoURL: photoURL || null,
+      photoName: photoName || null,
+      date: new Date().toLocaleDateString('en-GB'),
+      timestamp: new Date(),
+      addedBy: currentAdmin
+    }).then(() => {
+      logActivity("ADD_MEMBER", `Added member '${name}'`);
+      clearMemberForm();
+      loadMembers();
+    });
+  }
+
+  function clearMemberForm() {
+    document.getElementById('memberName').value = '';
+    document.getElementById('memberContact').value = '';
+    document.getElementById('memberPhoto').value = '';
+    memberPhotoFile = null;
+    document.getElementById('photoPreview').innerHTML = `
+      <i class="fas fa-camera fa-2x text-muted mb-1"></i>
+      <p id="photoFileName" class="small m-0 text-muted">Click to upload member photo</p>
+    `;
+  }
+
+  function loadMembers() {
+    db.collection("members").orderBy("timestamp", "asc").get()
+      .then(snapshot => {
+        const members = [];
+        snapshot.forEach(doc => members.push({ id: doc.id, ...doc.data() }));
+        renderMembers(members);
+      });
+  }
+
+  function renderMembers(members) {
+    const grid = document.getElementById('membersGrid');
+    const empty = document.getElementById('membersEmpty');
+    
+    if (!members.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    grid.innerHTML = members.map(m => `
+      <div class="member-card">
+        <button class="delete-btn" style="position:absolute; top:8px; right:8px; background:#ef4444; color:white; border:none; border-radius:50%; width:28px; height:28px;" onclick="deleteMember('${m.id}', '${m.name}')">
+          <i class="fas fa-times"></i>
+        </button>
+        
+        ${m.photoURL ? 
+          `<img src="${m.photoURL}" alt="${m.name}" class="member-photo">` : 
+          `<div class="member-placeholder"><i class="fas fa-user"></i></div>`
+        }
+        
+        <h6 class="fw-bold mb-1 text-dark">${m.name}</h6>
+        ${m.contact ? `<p class="small text-muted mb-1"><i class="fas fa-phone me-1"></i>${m.contact}</p>` : ''}
+        <small class="text-secondary opacity-75" style="font-size:0.75rem;">Added: ${m.date || '2026'}</small>
+      </div>
+    `).join('');
+  }
+
+  function deleteMember(id, name) {
+    if (!requireAdminAuth("delete member")) return;
+    if (confirm(`Remove member '${name}' from committee list?`)) {
+      db.collection("members").doc(id).delete().then(() => {
+        logActivity("DELETE_MEMBER", `Removed member '${name}'`);
+        loadMembers();
+      });
+    }
+  }
+
+  // Gallery Management
+  async function handleGalleryImages(input) {
+    if (!requireAdminAuth("upload photos")) return;
+    const files = Array.from(input.files);
+    if (!files.length) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      uploadToCloudinary(file, async (url, fname, fsize) => {
+        if (url) {
+          await db.collection("gallery").add({
+            url: url,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            date: new Date().toLocaleDateString('hi-IN'),
+            uploadDate: new Date(),
+            uploadedBy: currentAdmin
+          });
+          logActivity("UPLOAD_PHOTO", `Uploaded photo: ${file.name}`);
+          loadGallery();
+        }
+      });
+    }
+    input.value = "";
+  }
+
+  async function loadGallery() {
+    try {
+      const snapshot = await db.collection('gallery').orderBy('uploadDate', 'desc').get();
+      const images = [];
+      snapshot.forEach(doc => images.push({ id: doc.id, ...doc.data() }));
+      renderGallery(images);
+    } catch (e) {
+      const snapshot = await db.collection('gallery').get();
+      const images = [];
+      snapshot.forEach(doc => images.push({ id: doc.id, ...doc.data() }));
+      renderGallery(images);
+    }
+  }
+
+  function renderGallery(images) {
+    const grid = document.getElementById('imageGrid');
+    const empty = document.getElementById('galleryEmpty');
+    
+    if (!images.length) {
+      grid.innerHTML = "";
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+    
+    grid.innerHTML = images.map(img => `
+      <div class="image-item">
+        <button class="delete-btn" onclick="deleteImage('${img.id}', '${img.name || 'Photo'}')">
+          <i class="fas fa-trash"></i>
+        </button>
+        <img src="${img.url}" alt="${img.name || 'Festival Photo'}" onclick="showModalImage('${img.url}')" loading="lazy"/>
+      </div>
+    `).join('');
+  }
+
+  function deleteImage(id, name) {
+    if (!requireAdminAuth("delete photo")) return;
+    if (confirm(`Permanently delete this photo?`)) {
+      db.collection('gallery').doc(id).delete().then(() => {
+        logActivity("DELETE_PHOTO", `Deleted photo: ${name}`);
+        loadGallery();
+      });
+    }
+  }
+
+  function showModalImage(url) {
+    document.getElementById('modalImage').src = url;
+    new bootstrap.Modal(document.getElementById('imageModal')).show();
+  }
+
+  // Public Visibility Switcher
+  function togglePublicVisibility() {
+    if (!requireAdminAuth("toggle client app visibility")) return;
+    const docRef = db.collection("HideShowFlagAdmin").doc("HideShowAdmin");
+    
+    docRef.get().then(doc => {
+      const current = doc.exists ? doc.data().Flag : true;
+      const next = !current;
+      docRef.set({ Flag: next }).then(() => {
+        logActivity("CONFIG_FLAG", `Switched public visibility flag to: ${next}`);
+        alert(`Visibility flag successfully updated to: ${next}`);
+      });
+    });
+  }
+
+  function formatFileSize(size) {
+    if (size < 1024) return size + " B";
+    else if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+    else return (size / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
+  // Init
+  document.addEventListener('DOMContentLoaded', function() {
+    history.replaceState({ page: 'home' }, '', '#home');
+    updateAuthUI();
+    loadDonations();
+    loadExpenses();
+    loadMembers();
+    loadGallery();
+  });
+</script>
+
+<!-- Firebase Config -->
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDHCFp2U83R2htaKKz5ZTRAPLahh7lkcXE",
+    authDomain: "ganpati2025-da162.firebaseapp.com",
+    databaseURL: "https://ganpati2025-da162-default-rtdb.firebaseio.com",
+    projectId: "ganpati2025-da162",
+    storageBucket: "ganpati2025-da162.firebasestorage.appspot.com",
+    messagingSenderId: "198731408007",
+    appId: "1:198731408007:web:a61f4bf5b6fbcb83ae8e22",
+    measurementId: "G-043GNXQ86Q"
+  };
+   
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+</script>
+
+<!-- Cloudinary Upload Logic -->
+<script>
+  const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dosohpffj/upload";
+  const CLOUDINARY_UPLOAD_PRESET = "Ganpati2025";
+
+  function uploadToCloudinary(file, callback) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+    fetch(CLOUDINARY_URL, {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.secure_url) callback(data.secure_url, data.original_filename, data.bytes);
+      else callback(null, null, null);
+    })
+    .catch(() => callback(null, null, null));
+  }
+</script>
+
+<!-- Bootstrap Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
+      
